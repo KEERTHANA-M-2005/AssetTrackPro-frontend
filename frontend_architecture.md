@@ -1,4 +1,4 @@
-# Frontend Architecture – OptiAsset
+# Frontend Architecture – AssetTrack Pro (Next.js UI Tree)
 
 ## Role: IT Administrator (Full access)
 
