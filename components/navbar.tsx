@@ -1,25 +1,53 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { User, Sun, Moon, Settings } from "lucide-react"
+import { User, Sun, Moon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getCurrentUser, clearAuth } from "@/lib/auth"
 
 interface NavbarProps {
-  userName: string
-  role: "Admin" | "Employee"
-  onRoleSwitch: (role: "Admin" | "Employee") => void
+  userName?: string
+  role?: "Admin" | "Employee"
 }
 
-export default function Navbar({ userName, role, onRoleSwitch }: NavbarProps) {
+export default function Navbar({ userName: userNameProp, role: roleProp }: NavbarProps) {
   const { theme, setTheme } = useTheme()
+  const router = useRouter()
+  const [displayName, setDisplayName] = useState(userNameProp ?? "")
+  const [role, setRole] = useState<"Admin" | "Employee">(roleProp ?? "Employee")
+
+  useEffect(() => {
+    if (userNameProp) {
+      setDisplayName(userNameProp)
+    } else {
+      const user = getCurrentUser()
+      if (user) setDisplayName(user.email)
+    }
+
+    if (roleProp) {
+      setRole(roleProp)
+    } else {
+      const user = getCurrentUser()
+      if (user) setRole(user.role === "admin" ? "Admin" : "Employee")
+    }
+  }, [userNameProp, roleProp])
+
+  const handleLogout = () => {
+    clearAuth()
+    toast.success("Logged out successfully")
+    router.push("/login")
+  }
 
   return (
     <motion.nav
@@ -28,7 +56,7 @@ export default function Navbar({ userName, role, onRoleSwitch }: NavbarProps) {
       className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-4 shadow-sm"
     >
       <div className="flex items-center justify-between">
-        {/* Welcome Message */}
+        {/* User info */}
         <div className="flex items-center gap-4">
           <motion.div
             initial={{ scale: 0 }}
@@ -40,37 +68,24 @@ export default function Navbar({ userName, role, onRoleSwitch }: NavbarProps) {
           </motion.div>
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-400">Welcome back,</p>
-            <p className="font-semibold text-gray-900 dark:text-white">{userName}</p>
+            <p className="font-semibold text-gray-900 dark:text-white">{displayName || "User"}</p>
           </div>
         </div>
 
-        {/* Right Section */}
+        {/* Right controls */}
         <div className="flex items-center gap-4">
-          {/* Role Switch */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  role === "Admin"
-                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                }`}>
-                  {role}
-                </span>
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onRoleSwitch("Admin")}>
-                Switch to Admin
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onRoleSwitch("Employee")}>
-                Switch to Employee
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Role badge */}
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-medium ${
+              role === "Admin"
+                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300"
+                : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+            }`}
+          >
+            {role}
+          </span>
 
-          {/* Theme Toggle */}
+          {/* Theme toggle */}
           <Button
             variant="outline"
             size="icon"
@@ -82,7 +97,7 @@ export default function Navbar({ userName, role, onRoleSwitch }: NavbarProps) {
             <span className="sr-only">Toggle theme</span>
           </Button>
 
-          {/* Profile Menu */}
+          {/* Profile / logout menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -91,10 +106,15 @@ export default function Navbar({ userName, role, onRoleSwitch }: NavbarProps) {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-              <DropdownMenuItem>Account Settings</DropdownMenuItem>
-              <DropdownMenuItem className="text-red-600">Logout</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium truncate">{displayName || "User"}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{role}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                Sign out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
